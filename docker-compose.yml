@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  student-score-tracker:
+    image: node:18-alpine
+    container_name: student-score-tracker
+    working_dir: /app
+    volumes:
+      - ./data:/app/data
+      - ./server:/app/server
+      - ./public:/app/public
+      - ./package.json:/app/package.json
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    command: sh -c "npm install && npm start"
+    restart: unless-stopped
+    networks:
+      - student-network
+
+networks:
+  student-network:
+    driver: bridge
