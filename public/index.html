@@ -35,30 +35,43 @@
                 <div class="card">
                     <h2>📝 录入考试成绩</h2>
                     
-                    <div class="form-group">
-                        <label>考试类型</label>
-                        <select v-model="form.exam_type" @change="updateSubjects">
-                            <option value="">-- 请选择 --</option>
-                            <option value="weekly">周测</option>
-                            <option value="monthly">月考</option>
-                            <option value="midterm">期中考</option>
-                            <option value="final">期末考</option>
-                            <option value="mock">模拟考</option>
-                        </select>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>🎓 当前年级</label>
+                            <select v-model="form.grade" @change="updateSubjects">
+                                <option value="grade7">初一</option>
+                                <option value="grade8">初二</option>
+                                <option value="grade9">初三</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>📋 考试类型</label>
+                            <select v-model="form.exam_type" @change="updateSubjects">
+                                <option value="">-- 请选择 --</option>
+                                <option value="weekly">周测</option>
+                                <option value="monthly">月考</option>
+                                <option value="midterm">期中考</option>
+                                <option value="final">期末考</option>
+                                <option value="mock">模拟考</option>
+                            </select>
+                        </div>
                     </div>
 
-                    <div class="form-group">
-                        <label>考试日期</label>
-                        <input v-model="form.exam_date" type="date">
-                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>📅 考试日期</label>
+                            <input v-model="form.exam_date" type="date">
+                        </div>
 
-                    <div class="form-group">
-                        <label>考试名称 (如：第1周周测)</label>
-                        <input v-model="form.exam_name" type="text" placeholder="输入考试名称">
+                        <div class="form-group">
+                            <label>📝 考试名称</label>
+                            <input v-model="form.exam_name" type="text" placeholder="如：第1周周测">
+                        </div>
                     </div>
 
                     <div class="scores-grid">
-                        <h3>📌 单科成绩</h3>
+                        <h3>📌 单科成绩 ({{ getGradeName(form.grade) }}年级)</h3>
                         <div class="subjects-input">
                             <div v-for="subject in currentSubjects" :key="subject" class="subject-input">
                                 <label>{{ subject }}</label>
@@ -66,7 +79,9 @@
                                     <input 
                                         v-model.number="form.scores[subject]" 
                                         type="number" 
-                                        :placeholder="getMaxScore(subject) + '分'">
+                                        :placeholder="getMaxScore(subject) + '分'"
+                                        min="0"
+                                        :max="getMaxScore(subject)">
                                     <span class="max-score">/{{ getMaxScore(subject) }}</span>
                                 </div>
                             </div>
@@ -74,7 +89,7 @@
                     </div>
 
                     <div class="total-score" v-if="getTotalScore() > 0">
-                        <span>总分：</span>
+                        <span>📊 总分：</span>
                         <strong>{{ getTotalScore() }}</strong>
                     </div>
 
@@ -89,12 +104,12 @@
                     
                     <div class="filters">
                         <select v-model="filterType">
-                            <option value="">全部考试</option>
-                            <option value="weekly">周测</option>
-                            <option value="monthly">月考</option>
-                            <option value="midterm">期中考</option>
-                            <option value="final">期末考</option>
-                            <option value="mock">模拟考</option>
+                            <option value="">📊 全部考试</option>
+                            <option value="weekly">📝 周测</option>
+                            <option value="monthly">🗓️ 月考</option>
+                            <option value="midterm">📌 期中考</option>
+                            <option value="final">🏁 期末考</option>
+                            <option value="mock">🎯 模拟考</option>
                         </select>
                     </div>
 
@@ -110,8 +125,8 @@
                                 </div>
                                 <div class="exam-score">
                                     <span class="total">总分: {{ exam.total_score }}</span>
-                                    <button class="btn-small" @click="toggleExamDetails(exam.id)">▼ 详情</button>
-                                    <button class="btn-small btn-danger" @click="deleteExam(exam.id)">🗑 删除</button>
+                                    <button class="btn-small" @click="toggleExamDetails(exam.id)">📂 详情</button>
+                                    <button class="btn-small btn-danger" @click="deleteExam(exam.id)">🗑️ 删除</button>
                                 </div>
                             </div>
                             <div v-if="expandedExamId === exam.id" class="exam-details">
@@ -142,6 +157,7 @@
                     <div class="card chart-card">
                         <h2>📊 单科成绩趋势</h2>
                         <div class="form-group">
+                            <label>选择科目</label>
                             <select v-model="selectedSubject" @change="updateSubjectChart">
                                 <option value="">-- 选择科目 --</option>
                                 <option v-for="subject in allSubjects" :key="subject" :value="subject">
@@ -158,6 +174,7 @@
                     <div class="card chart-card">
                         <h2>🏆 单次考试成绩排名</h2>
                         <div class="form-group">
+                            <label>选择考试</label>
                             <select v-model="selectedExamForRanking" @change="updateRankingChart">
                                 <option value="">-- 选择考试 --</option>
                                 <option v-for="exam in exams" :key="exam.id" :value="exam.id">
