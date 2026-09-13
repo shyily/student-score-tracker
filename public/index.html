@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📊 学生成绩管理系统</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
+</head>
+<body>
+    <div id="app">
+        <!-- 导航栏 -->
+        <nav class="navbar">
+            <div class="container">
+                <h1>📊 学生成绩管理系统</h1>
+                <div class="nav-menu">
+                    <button :class="['nav-btn', {active: currentTab === 'input'}]" @click="currentTab = 'input'">
+                        ➕ 录入成绩
+                    </button>
+                    <button :class="['nav-btn', {active: currentTab === 'view'}]" @click="currentTab = 'view'">
+                        📋 查看成绩
+                    </button>
+                    <button :class="['nav-btn', {active: currentTab === 'chart'}]" @click="currentTab = 'chart'">
+                        📈 数据分析
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- 主容器 -->
+        <div class="container main-content">
+            <!-- 录入成绩标签页 -->
+            <div v-if="currentTab === 'input'" class="tab-content">
+                <div class="card">
+                    <h2>📝 录入考试成绩</h2>
+                    
+                    <div class="form-group">
+                        <label>考试类型</label>
+                        <select v-model="form.exam_type" @change="updateSubjects">
+                            <option value="">-- 请选择 --</option>
+                            <option value="weekly">周测</option>
+                            <option value="monthly">月考</option>
+                            <option value="midterm">期中考</option>
+                            <option value="final">期末考</option>
+                            <option value="mock">模拟考</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>考试日期</label>
+                        <input v-model="form.exam_date" type="date">
+                    </div>
+
+                    <div class="form-group">
+                        <label>考试名称 (如：第1周周测)</label>
+                        <input v-model="form.exam_name" type="text" placeholder="输入考试名称">
+                    </div>
+
+                    <div class="scores-grid">
+                        <h3>📌 单科成绩</h3>
+                        <div class="subjects-input">
+                            <div v-for="subject in currentSubjects" :key="subject" class="subject-input">
+                                <label>{{ subject }}</label>
+                                <div class="input-wrapper">
+                                    <input 
+                                        v-model.number="form.scores[subject]" 
+                                        type="number" 
+                                        :placeholder="getMaxScore(subject) + '分'">
+                                    <span class="max-score">/{{ getMaxScore(subject) }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="total-score" v-if="getTotalScore() > 0">
+                        <span>总分：</span>
+                        <strong>{{ getTotalScore() }}</strong>
+                    </div>
+
+                    <button class="btn btn-primary" @click="submitExam">✅ 保存成绩</button>
+                </div>
+            </div>
+
+            <!-- 查看成绩标签页 -->
+            <div v-if="currentTab === 'view'" class="tab-content">
+                <div class="card">
+                    <h2>📋 成绩记录</h2>
+                    
+                    <div class="filters">
+                        <select v-model="filterType">
+                            <option value="">全部考试</option>
+                            <option value="weekly">周测</option>
+                            <option value="monthly">月考</option>
+                            <option value="midterm">期中考</option>
+                            <option value="final">期末考</option>
+                            <option value="mock">模拟考</option>
+                        </select>
+                    </div>
+
+                    <div class="exams-list">
+                        <div v-if="filteredExams.length === 0" class="empty-state">
+                            📭 暂无成绩记录
+                        </div>
+                        <div v-for="exam in filteredExams" :key="exam.id" class="exam-item">
+                            <div class="exam-header">
+                                <div class="exam-info">
+                                    <h3>{{ exam.exam_name }}</h3>
+                                    <p>{{ exam.exam_date }} | {{ getExamTypeName(exam.type) }}</p>
+                                </div>
+                                <div class="exam-score">
+                                    <span class="total">总分: {{ exam.total_score }}</span>
+                                    <button class="btn-small" @click="toggleExamDetails(exam.id)">▼ 详情</button>
+                                    <button class="btn-small btn-danger" @click="deleteExam(exam.id)">🗑 删除</button>
+                                </div>
+                            </div>
+                            <div v-if="expandedExamId === exam.id" class="exam-details">
+                                <div class="scores-table">
+                                    <div v-for="score in exam.scores" :key="score.id" class="score-row">
+                                        <span class="subject">{{ score.subject }}</span>
+                                        <span class="score">{{ score.score }}/{{ score.max_score }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 数据分析标签页 -->
+            <div v-if="currentTab === 'chart'" class="tab-content">
+                <div class="charts-container">
+                    <!-- 总分趋势图 -->
+                    <div class="card chart-card">
+                        <h2>📈 总分变化趋势</h2>
+                        <div class="chart-wrapper">
+                            <canvas id="totalScoreChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- 单科成绩趋势图 -->
+                    <div class="card chart-card">
+                        <h2>📊 单科成绩趋势</h2>
+                        <div class="form-group">
+                            <select v-model="selectedSubject" @change="updateSubjectChart">
+                                <option value="">-- 选择科目 --</option>
+                                <option v-for="subject in allSubjects" :key="subject" :value="subject">
+                                    {{ subject }}
+                                </option>
+                            </select>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="subjectScoreChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- 单次考试成绩排名 -->
+                    <div class="card chart-card">
+                        <h2>🏆 单次考试成绩排名</h2>
+                        <div class="form-group">
+                            <select v-model="selectedExamForRanking" @change="updateRankingChart">
+                                <option value="">-- 选择考试 --</option>
+                                <option v-for="exam in exams" :key="exam.id" :value="exam.id">
+                                    {{ exam.exam_name }} ({{ exam.exam_date }})
+                                </option>
+                            </select>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="rankingChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
