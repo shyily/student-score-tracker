@@ -42,7 +42,7 @@ router.get('/exams/:id', async (req, res) => {
 // 创建新的考试记录
 router.post('/exams', async (req, res) => {
   try {
-    const { exam_type_id, exam_date, exam_name, scores } = req.body;
+    const { exam_type_id, exam_date, exam_name, scores, grade } = req.body;
 
     // 计算总分
     const total_score = Object.values(scores).reduce((sum, score) => sum + (score || 0), 0);
@@ -58,7 +58,7 @@ router.post('/exams', async (req, res) => {
     for (const [subject, score] of Object.entries(scores)) {
       if (score !== null && score !== '') {
         // 获取该科目的满分
-        const maxScore = getMaxScore(subject, exam_type_id);
+        const maxScore = getMaxScore(subject);
         await db.run(`
           INSERT INTO subject_scores (exam_record_id, subject, score, max_score)
           VALUES (?, ?, ?, ?)
@@ -165,15 +165,37 @@ router.get('/stats/rankings/:exam_id', async (req, res) => {
   }
 });
 
+// 获取年级配置
+router.get('/config/grades', async (req, res) => {
+  try {
+    res.json({
+      grade7: {
+        name: '初一',
+        subjects: ['语文', '数学', '英语', '道德与法治', '历史', '生物', '地理']
+      },
+      grade8: {
+        name: '初二',
+        subjects: ['语文', '数学', '英语', '物理', '道德与法治', '历史', '生物', '地理']
+      },
+      grade9: {
+        name: '初三',
+        subjects: ['语文', '数学', '英语', '物理', '化学', '道德与法治', '历史']
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // 辅助函数：获取科目满分
-function getMaxScore(subject, exam_type_id = null) {
+function getMaxScore(subject) {
   const scoreMap = {
     '语文': 120,
     '数学': 120,
     '英语': 120,
     '物理': 70,
     '化学': 50,
-    '政治': 70,
+    '道德与法治': 70,
     '历史': 50,
     '生物': 50,
     '地理': 50
