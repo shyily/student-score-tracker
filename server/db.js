@@ -26,6 +26,8 @@ function init() {
         exam_date TEXT NOT NULL,
         exam_name TEXT NOT NULL,
         total_score INTEGER,
+        class_rank INTEGER,
+        grade_rank INTEGER,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY(exam_type_id) REFERENCES exam_types(id)
       )
@@ -39,6 +41,8 @@ function init() {
         subject TEXT NOT NULL,
         score REAL,
         max_score INTEGER,
+        class_rank INTEGER,
+        grade_rank INTEGER,
         FOREIGN KEY(exam_record_id) REFERENCES exam_records(id)
       )
     `);
