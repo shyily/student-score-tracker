@@ -4,7 +4,7 @@ const SUBJECT_ORDER = ['语文', '数学', '英语', '物理', '化学', '道德
 const app = createApp({
   data() {
     return {
-      currentTab: 'input', exams: [], expandedExamId: null, filterType: '', selectedSubject: '', subjectTrendMode: 'standard', charts: {},
+      currentTab: 'input', exams: [], expandedExamId: null, filterType: '', selectedSubject: '', subjectTrendMode: 'weekly', charts: {},
       gradeConfig: {}, scoreMap: {}, currentSubjects: [], editingId: null,
       form: { exam_type: '', exam_date: '', exam_name: '', grade: 'grade7', scores: {}, total_class_rank: null, total_grade_rank: null }
     };

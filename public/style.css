@@ -244,7 +244,7 @@ body {
 .total-ranks { max-width: 480px; margin: -10px 0 25px; }
 .rank-summary { margin-top: 14px; color: #666; font-size: 13px; }
 .score-row { flex-wrap: wrap; gap: 5px; }
-.score-row small { width: 100%; color: #777; }
+.score-row small { color: #777; white-space: nowrap; }
 .score-rate { margin-top: 7px; color: #667eea; font-size: 12px; font-weight: 700; }
 .rate-badge { display: inline-flex; align-items: center; min-height: 28px; padding: 4px 9px; border-radius: 999px; background: #eef0ff; color: #5568d3; font-size: 12px; font-weight: 700; white-space: nowrap; }
 .total-rate { margin-left: auto; padding: 7px 12px; border: 1px solid rgba(255, 255, 255, .45); border-radius: 999px; font-size: 14px; white-space: nowrap; }
