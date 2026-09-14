@@ -491,6 +491,45 @@ body {
     margin-top: 20px;
 }
 
+.rankings-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 18px;
+    margin-top: 20px;
+}
+
+.ranking-table-section {
+    overflow: hidden;
+    border: 1px solid #e5e8f5;
+    border-radius: 10px;
+}
+
+.ranking-table-section h3,
+.empty-ranking {
+    margin: 0;
+    padding: 13px 15px;
+    color: #4d5caa;
+    font-size: 14px;
+}
+
+.empty-ranking { color: #8a8fa8; }
+
+.ranking-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.ranking-table th,
+.ranking-table td {
+    padding: 10px 15px;
+    text-align: left;
+    border-top: 1px solid #eef0f7;
+}
+
+.ranking-table th { background: #f7f8ff; color: #70779a; }
+.ranking-table td:last-child { color: #5568d3; font-weight: 700; }
+
 /* 响应式设计 */
 @media (max-width: 768px) {
     .navbar .container {
