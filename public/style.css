@@ -446,6 +446,12 @@ body {
     white-space: nowrap;
 }
 
+.rank-badge-muted {
+    border-style: dashed;
+    background: #fafafa;
+    color: #898e9f;
+}
+
 .exam-details {
     margin-top: 20px;
     padding-top: 20px;
