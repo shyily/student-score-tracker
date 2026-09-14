@@ -11,7 +11,14 @@ const app = createApp({
   computed: {
     filteredExams() { return this.filterType ? this.exams.filter((exam) => exam.type === this.filterType) : this.exams; },
     allSubjects() { return [...new Set(this.exams.flatMap((exam) => exam.scores.map((score) => score.subject)))].sort(); },
-    isWeekly() { return this.form.exam_type === 'weekly'; }
+    isWeekly() { return this.form.exam_type === 'weekly'; },
+    availableExamTypes() {
+      const types = [
+        { value: 'weekly', label: '周测' }, { value: 'monthly', label: '月考' },
+        { value: 'midterm', label: '期中考' }, { value: 'final', label: '期末考' }
+      ];
+      return this.form.grade === 'grade9' ? [...types, { value: 'mock', label: '模拟考' }] : types;
+    }
   },
   methods: {
     async loadConfig() {
@@ -29,6 +36,10 @@ const app = createApp({
     getSubjectMaxScore(subject) { return this.isWeekly ? (this.form.scores[subject]?.max_score || 0) : this.scoreMap[subject] || 0; },
     getTotalScore() { return this.currentSubjects.reduce((sum, subject) => sum + (Number(this.form.scores[subject]?.score) || 0), 0); },
     getTotalMaxScore() { return this.currentSubjects.reduce((sum, subject) => sum + (Number(this.getSubjectMaxScore(subject)) || 0), 0); },
+    formatScoreRate(score, maxScore) {
+      const denominator = Number(maxScore);
+      return denominator > 0 ? `${((Number(score) || 0) / denominator * 100).toFixed(1)}%` : '—';
+    },
     getGradeName(grade) { return this.gradeConfig[grade]?.name || grade; },
     getExamTypeName(type) { return ({ weekly: '周测', monthly: '月考', midterm: '期中考', final: '期末考', mock: '模拟考' })[type] || type; },
     async loadExams() {
@@ -78,7 +89,10 @@ const app = createApp({
   },
   watch: {
     currentTab(tab) { if (tab === 'view') this.loadExams(); if (tab === 'chart') this.$nextTick(() => this.updateTotalScoreChart()); },
-    'form.grade'() { if (this.form.exam_type) this.updateSubjects(); },
+    'form.grade'() {
+      if (this.form.grade !== 'grade9' && this.form.exam_type === 'mock') this.form.exam_type = '';
+      if (this.form.exam_type) this.updateSubjects();
+    },
     'form.exam_type'() { this.updateSubjects(); }
   },
   async mounted() { try { await this.loadConfig(); await this.loadExams(); } catch (err) { console.error(err); alert('无法连接服务器，请检查服务是否启动'); } }

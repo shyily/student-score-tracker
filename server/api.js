@@ -29,6 +29,9 @@ function normalizePayload(payload) {
   if (!type || !GRADE_CONFIG[grade] || !/^\d{4}-\d{2}-\d{2}$/.test(exam_date || '') || !String(exam_name || '').trim()) {
     throw new Error('请提供有效的考试类型、年级、日期和考试名称');
   }
+  if (type === 'mock' && grade !== 'grade9') {
+    throw new Error('模拟考仅适用于初三');
+  }
   if (!scores || typeof scores !== 'object' || Array.isArray(scores)) {
     throw new Error('请至少提供一项科目成绩');
   }
