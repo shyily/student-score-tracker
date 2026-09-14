@@ -143,7 +143,7 @@
                                         <span class="rate-badge">得分率 {{ formatScoreRate(score.score, score.max_score) }}</span>
                                         <small>班级 {{ score.class_rank || '—' }} · 年级 {{ score.grade_rank || '—' }}</small>
                                     </div>
-                                    <p class="rank-summary">总分名次：班级 {{ exam.class_rank || '—' }} · 年级 {{ exam.grade_rank || '—' }}</p>
+                                    <p class="rank-summary"><span>总分名次：班级 {{ exam.class_rank || '—' }}</span><span>· 年级 {{ exam.grade_rank || '—' }}</span></p>
                                 </div>
                             </div>
                         </div>
@@ -175,8 +175,8 @@
                         <div class="form-group">
                             <label>考试范围</label>
                             <select v-model="subjectTrendMode" @change="updateSubjectChart">
-                                <option value="standard">标准考试（分值）</option>
                                 <option value="weekly">周测（得分率）</option>
+                                <option value="standard">标准考试（分值）</option>
                             </select>
                         </div>
                         <div class="chart-wrapper">

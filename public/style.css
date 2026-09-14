@@ -242,7 +242,7 @@ body {
 .rank-inputs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
 .rank-inputs input { width: 100%; height: 42px; padding: 8px; border: 1px solid #e0e0e0; border-radius: 6px; font: inherit; font-size: 12px; }
 .total-ranks { max-width: 480px; margin: -10px 0 25px; }
-.rank-summary { margin-top: 14px; color: #666; font-size: 13px; }
+.rank-summary { display: inline-flex; flex-wrap: nowrap; gap: 4px; margin-top: 14px; color: #666; font-size: 13px; white-space: nowrap; }
 .score-row { flex-wrap: wrap; gap: 5px; }
 .score-row small { color: #777; white-space: nowrap; }
 .score-rate { margin-top: 7px; color: #667eea; font-size: 12px; font-weight: 700; }
