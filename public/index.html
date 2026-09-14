@@ -154,30 +154,10 @@
             <!-- 数据分析标签页 -->
             <div v-if="currentTab === 'chart'" class="tab-content">
                 <div class="charts-container">
-                    <!-- 周测总分趋势图 -->
-                    <div class="card chart-card">
-                        <h2>📝 周测总分得分率趋势</h2>
-                        <div class="chart-wrapper"><canvas id="weeklyTotalChart"></canvas></div>
-                    </div>
-
-                    <div class="card chart-card">
-                        <h2>🗓️ 月考总分趋势</h2>
-                        <div class="chart-wrapper"><canvas id="monthlyTotalChart"></canvas></div>
-                    </div>
-
-                    <div class="card chart-card">
-                        <h2>📈 标准考试总分趋势</h2>
-                        <div class="chart-wrapper"><canvas id="standardTotalChart"></canvas></div>
-                    </div>
-
-                    <div class="card chart-card">
-                        <h2>📝 周测总分得分率趋势</h2>
-                        <div class="chart-wrapper"><canvas id="weeklyTotalChart"></canvas></div>
-                    </div>
-
-                    <div class="card chart-card">
-                        <h2>🗓️ 月考总分得分率趋势</h2>
-                        <div class="chart-wrapper"><canvas id="monthlyTotalChart"></canvas></div>
+                    <!-- 只渲染这三个总分趋势，避免合并旧模板时产生重复空图表。 -->
+                    <div v-for="chart in totalTrendCards" :key="chart.canvasId" class="card chart-card">
+                        <h2>{{ chart.title }}</h2>
+                        <div class="chart-wrapper"><canvas :id="chart.canvasId"></canvas></div>
                     </div>
 
                     <!-- 单科成绩趋势图 -->

@@ -13,6 +13,13 @@ const app = createApp({
     filteredExams() { return this.filterType ? this.exams.filter((exam) => exam.type === this.filterType) : this.exams; },
     allSubjects() { return [...new Set(this.exams.flatMap((exam) => exam.scores.map((score) => score.subject)))].sort((a, b) => SUBJECT_ORDER.indexOf(a) - SUBJECT_ORDER.indexOf(b)); },
     examFilters() { return [{ value: '', label: '📊 全部考试' }, { value: 'weekly', label: '📝 周测' }, { value: 'monthly', label: '🗓️ 月考' }, { value: 'midterm', label: '📌 期中考' }, { value: 'final', label: '🏁 期末考' }, { value: 'mock', label: '🎯 模拟考' }]; },
+    totalTrendCards() {
+      return [
+        { title: '📝 周测总分得分率趋势', canvasId: 'weeklyTotalChart' },
+        { title: '🗓️ 月考总分趋势', canvasId: 'monthlyTotalChart' },
+        { title: '📈 标准考试总分趋势', canvasId: 'standardTotalChart' }
+      ];
+    },
     isWeekly() { return this.form.exam_type === 'weekly'; },
     availableExamTypes() {
       const types = [
