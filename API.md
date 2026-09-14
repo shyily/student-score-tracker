@@ -28,15 +28,21 @@ GET /api/exams
     "exam_date": "2024-09-13",
     "type": "weekly",
     "exam_type_name": "周测",
-    "total_score": 275,
+    "grade": "grade7",
+    "total_score": 229,
+    "total_max_score": 265,
+    "class_rank": 3,
+    "grade_rank": null,
     "created_at": "2024-09-13 10:30:00",
     "scores": [
       {
         "id": 1,
         "exam_record_id": 1,
         "subject": "语文",
-        "score": 95,
-        "max_score": 120
+        "score": 49,
+        "max_score": 65,
+        "class_rank": 2,
+        "grade_rank": null
       },
       {
         "id": 2,
@@ -75,7 +81,8 @@ GET /api/exams/:id
 ```json
 {
   "id": 1,
-  "exam_type_id": 1,
+  "exam_type": "weekly",
+  "grade": "grade7",
   "exam_name": "第1周周测",
   "exam_date": "2024-09-13",
   "type": "weekly",
@@ -107,10 +114,11 @@ Content-Type: application/json
   "exam_type_id": 1,
   "exam_date": "2024-09-13",
   "exam_name": "第1周周测",
+  "total_class_rank": 3,
   "scores": {
-    "语文": 95,
-    "数学": 88,
-    "英语": 92
+    "语文": { "score": 49, "max_score": 65, "class_rank": 2 },
+    "数学": { "score": 88, "max_score": 100, "class_rank": 4 },
+    "英语": { "score": 92, "max_score": 100, "class_rank": 3 }
   }
 }
 ```
@@ -119,10 +127,11 @@ Content-Type: application/json
 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| exam_type_id | number | ✅ | 考试类型ID (1=周测, 2=月考, 3=期中, 4=期末, 5=模拟) |
+| exam_type | string | ✅ | `weekly`、`monthly`、`midterm`、`final` 或 `mock` |
+| grade | string | ✅ | `grade7`、`grade8` 或 `grade9` |
 | exam_date | string | ✅ | 考试日期 (格式: YYYY-MM-DD) |
 | exam_name | string | ✅ | 考试名称 |
-| scores | object | ✅ | 科目成绩对象 |
+| scores | object | ✅ | 科目成绩对象，值包含得分、班级名次及可选年级名次；周测还必须给出各科 `max_score` |
 
 **考试类型ID对应**
 ```
@@ -135,8 +144,8 @@ Content-Type: application/json
 
 **科目名称**
 ```
-周测: "语文", "数学", "英语"
-其他: "语文", "数学", "英语", "物理", "化学", "政治", "历史", "生物", "地理"
+周测: "语文", "数学", "英语"（每科满分由本次请求的 `max_score` 决定）
+其他: 根据年级使用固定科目和满分；年级名次可省略
 ```
 
 **响应示例**
