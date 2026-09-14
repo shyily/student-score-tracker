@@ -49,11 +49,9 @@
                             <label>📋 考试类型</label>
                             <select v-model="form.exam_type" @change="updateSubjects">
                                 <option value="">-- 请选择 --</option>
-                                <option value="weekly">周测</option>
-                                <option value="monthly">月考</option>
-                                <option value="midterm">期中考</option>
-                                <option value="final">期末考</option>
-                                <option value="mock">模拟考</option>
+                                <option v-for="examType in availableExamTypes" :key="examType.value" :value="examType.value">
+                                    {{ examType.label }}
+                                </option>
                             </select>
                         </div>
                     </div>
@@ -76,21 +74,32 @@
                             <div v-for="subject in currentSubjects" :key="subject" class="subject-input">
                                 <label>{{ subject }}</label>
                                 <div class="input-wrapper">
-                                    <input 
-                                        v-model.number="form.scores[subject]" 
-                                        type="number" 
-                                        :placeholder="getMaxScore(subject) + '分'"
+                                    <input
+                                        v-model.number="form.scores[subject].score"
+                                        type="number"
+                                        placeholder="得分"
                                         min="0"
-                                        :max="getMaxScore(subject)">
-                                    <span class="max-score">/{{ getMaxScore(subject) }}</span>
+                                        :max="getSubjectMaxScore(subject)">
+                                    <input v-if="isWeekly" v-model.number="form.scores[subject].max_score" class="max-input" type="number" placeholder="满分" min="1">
+                                    <span v-else class="max-score">/{{ getSubjectMaxScore(subject) }}</span>
                                 </div>
+                                <div class="rank-inputs">
+                                    <input v-model.number="form.scores[subject].class_rank" type="number" min="1" placeholder="班级名次">
+                                    <input v-if="!isWeekly" v-model.number="form.scores[subject].grade_rank" type="number" min="1" placeholder="年级名次（可选）">
+                                </div>
+                                <p class="score-rate">得分率 {{ formatScoreRate(form.scores[subject].score, getSubjectMaxScore(subject)) }}</p>
                             </div>
                         </div>
                     </div>
 
-                    <div class="total-score" v-if="getTotalScore() > 0">
+                    <div class="total-score" v-if="currentSubjects.length">
                         <span>📊 总分：</span>
-                        <strong>{{ getTotalScore() }}</strong>
+                        <strong>{{ getTotalScore() }} / {{ getTotalMaxScore() }}</strong>
+                        <span class="total-rate">得分率 {{ formatScoreRate(getTotalScore(), getTotalMaxScore()) }}</span>
+                    </div>
+                    <div class="rank-inputs total-ranks" v-if="currentSubjects.length">
+                        <input v-model.number="form.total_class_rank" type="number" min="1" placeholder="总分班级名次">
+                        <input v-if="!isWeekly" v-model.number="form.total_grade_rank" type="number" min="1" placeholder="总分年级名次（可选）">
                     </div>
 
                     <button class="btn btn-primary" @click="submitExam">✅ 保存成绩</button>
@@ -102,15 +111,10 @@
                 <div class="card">
                     <h2>📋 成绩记录</h2>
                     
-                    <div class="filters">
-                        <select v-model="filterType">
-                            <option value="">📊 全部考试</option>
-                            <option value="weekly">📝 周测</option>
-                            <option value="monthly">🗓️ 月考</option>
-                            <option value="midterm">📌 期中考</option>
-                            <option value="final">🏁 期末考</option>
-                            <option value="mock">🎯 模拟考</option>
-                        </select>
+                    <div class="filters exam-filter-buttons" aria-label="考试类型筛选">
+                        <button v-for="filter in examFilters" :key="filter.value" type="button" :class="['filter-btn', { active: filterType === filter.value }]" @click="filterType = filter.value">
+                            {{ filter.label }}
+                        </button>
                     </div>
 
                     <div class="exams-list">
@@ -124,8 +128,10 @@
                                     <p>{{ exam.exam_date }} | {{ getExamTypeName(exam.type) }}</p>
                                 </div>
                                 <div class="exam-score">
-                                    <span class="total">总分: {{ exam.total_score }}</span>
+                                    <span class="total">总分: {{ exam.total_score }}/{{ exam.total_max_score }}</span>
+                                    <span class="rate-badge">得分率 {{ formatScoreRate(exam.total_score, exam.total_max_score) }}</span>
                                     <button class="btn-small" @click="toggleExamDetails(exam.id)">📂 详情</button>
+                                    <button class="btn-small" @click="editExam(exam)">✏️ 编辑</button>
                                     <button class="btn-small btn-danger" @click="deleteExam(exam.id)">🗑️ 删除</button>
                                 </div>
                             </div>
@@ -134,7 +140,10 @@
                                     <div v-for="score in exam.scores" :key="score.id" class="score-row">
                                         <span class="subject">{{ score.subject }}</span>
                                         <span class="score">{{ score.score }}/{{ score.max_score }}</span>
+                                        <span class="rate-badge">得分率 {{ formatScoreRate(score.score, score.max_score) }}</span>
+                                        <small>班级 {{ score.class_rank || '—' }} · 年级 {{ score.grade_rank || '—' }}</small>
                                     </div>
+                                    <p class="rank-summary">总分名次：班级 {{ exam.class_rank || '—' }} · 年级 {{ exam.grade_rank || '—' }}</p>
                                 </div>
                             </div>
                         </div>
@@ -145,12 +154,10 @@
             <!-- 数据分析标签页 -->
             <div v-if="currentTab === 'chart'" class="tab-content">
                 <div class="charts-container">
-                    <!-- 总分趋势图 -->
-                    <div class="card chart-card">
-                        <h2>📈 总分变化趋势</h2>
-                        <div class="chart-wrapper">
-                            <canvas id="totalScoreChart"></canvas>
-                        </div>
+                    <!-- 只渲染这三个总分趋势，避免合并旧模板时产生重复空图表。 -->
+                    <div v-for="chart in totalTrendCards" :key="chart.canvasId" class="card chart-card">
+                        <h2>{{ chart.title }}</h2>
+                        <div class="chart-wrapper"><canvas :id="chart.canvasId"></canvas></div>
                     </div>
 
                     <!-- 单科成绩趋势图 -->
@@ -165,27 +172,18 @@
                                 </option>
                             </select>
                         </div>
+                        <div class="form-group">
+                            <label>考试范围</label>
+                            <select v-model="subjectTrendMode" @change="updateSubjectChart">
+                                <option value="standard">标准考试（分值）</option>
+                                <option value="weekly">周测（得分率）</option>
+                            </select>
+                        </div>
                         <div class="chart-wrapper">
                             <canvas id="subjectScoreChart"></canvas>
                         </div>
                     </div>
 
-                    <!-- 单次考试成绩排名 -->
-                    <div class="card chart-card">
-                        <h2>🏆 单次考试成绩排名</h2>
-                        <div class="form-group">
-                            <label>选择考试</label>
-                            <select v-model="selectedExamForRanking" @change="updateRankingChart">
-                                <option value="">-- 选择考试 --</option>
-                                <option v-for="exam in exams" :key="exam.id" :value="exam.id">
-                                    {{ exam.exam_name }} ({{ exam.exam_date }})
-                                </option>
-                            </select>
-                        </div>
-                        <div class="chart-wrapper">
-                            <canvas id="rankingChart"></canvas>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
