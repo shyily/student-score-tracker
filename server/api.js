@@ -4,12 +4,13 @@ const db = require('./db');
 const router = express.Router();
 
 const GRADE_CONFIG = {
-  grade7: { name: '初一', subjects: ['语文', '数学', '英语', '道德与法治', '历史', '生物', '地理'] },
-  grade8: { name: '初二', subjects: ['语文', '数学', '英语', '物理', '道德与法治', '历史', '生物', '地理'] },
+  grade7: { name: '初一', subjects: ['语文', '数学', '英语', '道德与法治', '历史', '地理', '生物'] },
+  grade8: { name: '初二', subjects: ['语文', '数学', '英语', '物理', '道德与法治', '历史', '地理', '生物'] },
   grade9: { name: '初三', subjects: ['语文', '数学', '英语', '物理', '化学', '道德与法治', '历史'] }
 };
 const EXAM_TYPES = { weekly: 1, monthly: 2, midterm: 3, final: 4, mock: 5 };
 const SCORE_MAP = { '语文': 120, '数学': 120, '英语': 120, '物理': 70, '化学': 50, '道德与法治': 70, '历史': 50, '生物': 50, '地理': 50 };
+const SUBJECT_ORDER = ['语文', '数学', '英语', '物理', '化学', '道德与法治', '历史', '地理', '生物'];
 
 function isOptionalRank(value) {
   return value === null || value === undefined || value === '' || (Number.isInteger(Number(value)) && Number(value) > 0);
@@ -21,6 +22,10 @@ function numberOrNull(value) {
 
 function maxScore(subject) {
   return SCORE_MAP[subject];
+}
+
+function orderSubjects(scores) {
+  return [...scores].sort((a, b) => SUBJECT_ORDER.indexOf(a.subject) - SUBJECT_ORDER.indexOf(b.subject));
 }
 
 function normalizePayload(payload) {
@@ -72,14 +77,14 @@ async function listExams(where = '', params = []) {
     FROM exam_records er JOIN exam_types et ON et.id = er.exam_type_id ${where}
     ORDER BY er.exam_date DESC, er.id DESC`, params);
   if (!exams.length) return exams;
-  const scores = await db.all(`SELECT * FROM subject_scores WHERE exam_record_id IN (${exams.map(() => '?').join(',')}) ORDER BY subject`, exams.map((exam) => exam.id));
+  const scores = await db.all(`SELECT * FROM subject_scores WHERE exam_record_id IN (${exams.map(() => '?').join(',')})`, exams.map((exam) => exam.id));
   const scoresByExam = new Map();
   scores.forEach((score) => {
     const items = scoresByExam.get(score.exam_record_id) || [];
     items.push(score);
     scoresByExam.set(score.exam_record_id, items);
   });
-  return exams.map((exam) => ({ ...exam, scores: scoresByExam.get(exam.id) || [] }));
+  return exams.map((exam) => ({ ...exam, scores: orderSubjects(scoresByExam.get(exam.id) || []) }));
 }
 
 router.get('/config/grades', (req, res) => res.json(GRADE_CONFIG));
@@ -149,7 +154,7 @@ router.get('/stats/trends', async (req, res) => {
     if (exam_type) { clauses.push('et.type = ?'); params.push(exam_type); }
     if (subject) { clauses.push('ss.subject = ?'); params.push(subject); }
     const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
-    const rows = await db.all(`SELECT er.id AS exam_id, er.exam_date, er.exam_name, er.total_score, er.total_max_score, ss.subject, ss.score, ss.max_score
+    const rows = await db.all(`SELECT er.id AS exam_id, er.exam_date, er.exam_name, et.type, er.total_score, er.total_max_score, ss.subject, ss.score, ss.max_score
       FROM exam_records er JOIN exam_types et ON et.id = er.exam_type_id JOIN subject_scores ss ON er.id = ss.exam_record_id ${where}
       ORDER BY er.exam_date ASC, er.id ASC`, params);
     res.json(rows);
@@ -158,8 +163,14 @@ router.get('/stats/trends', async (req, res) => {
 
 router.get('/stats/rankings/:exam_id', async (req, res) => {
   try {
-    const scores = await db.all('SELECT subject, score, max_score, class_rank, grade_rank FROM subject_scores WHERE exam_record_id = ? ORDER BY score DESC, subject', [req.params.exam_id]);
-    res.json(scores);
+    const exam = await db.get('SELECT class_rank, grade_rank FROM exam_records WHERE id = ?', [req.params.exam_id]);
+    if (!exam) return res.status(404).json({ error: 'Exam record not found' });
+    const scores = orderSubjects(await db.all('SELECT subject, class_rank, grade_rank FROM subject_scores WHERE exam_record_id = ?', [req.params.exam_id]));
+    const classRankings = [...scores.map((score) => ({ subject: score.subject, rank: score.class_rank })), { subject: '总分', rank: exam.class_rank }]
+      .filter((item) => item.rank !== null && item.rank !== undefined);
+    const gradeRankings = [...scores.map((score) => ({ subject: score.subject, rank: score.grade_rank })), { subject: '总分', rank: exam.grade_rank }]
+      .filter((item) => item.rank !== null && item.rank !== undefined);
+    return res.json({ classRankings, gradeRankings });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
