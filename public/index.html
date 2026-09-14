@@ -130,6 +130,8 @@
                                 <div class="exam-score">
                                     <span class="total">总分: {{ exam.total_score }}/{{ exam.total_max_score }}</span>
                                     <span class="rate-badge">得分率 {{ formatScoreRate(exam.total_score, exam.total_max_score) }}</span>
+                                    <span class="rank-badge">班级第 {{ exam.class_rank || '—' }} 名</span>
+                                    <span class="rank-badge">年级第 {{ exam.grade_rank || '—' }} 名</span>
                                     <button class="btn-small" @click="toggleExamDetails(exam.id)">📂 详情</button>
                                     <button class="btn-small" @click="editExam(exam)">✏️ 编辑</button>
                                     <button class="btn-small btn-danger" @click="deleteExam(exam.id)">🗑️ 删除</button>
