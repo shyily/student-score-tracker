@@ -4,9 +4,8 @@ const SUBJECT_ORDER = ['语文', '数学', '英语', '物理', '化学', '道德
 const app = createApp({
   data() {
     return {
-      currentTab: 'input', exams: [], expandedExamId: null, filterType: '', selectedSubject: '', subjectTrendMode: 'standard', selectedExamForRanking: '', charts: {},
+      currentTab: 'input', exams: [], expandedExamId: null, filterType: '', selectedSubject: '', subjectTrendMode: 'standard', charts: {},
       gradeConfig: {}, scoreMap: {}, currentSubjects: [], editingId: null,
-      rankingData: { classRankings: [], gradeRankings: [] },
       form: { exam_type: '', exam_date: '', exam_name: '', grade: 'grade7', scores: {}, total_class_rank: null, total_grade_rank: null }
     };
   },
@@ -30,6 +29,11 @@ const app = createApp({
     },
     emptyForm() { return { exam_type: '', exam_date: '', exam_name: '', grade: 'grade7', scores: {}, total_class_rank: null, total_grade_rank: null }; },
     updateSubjects() {
+      if (!this.form.exam_type) {
+        this.currentSubjects = [];
+        this.form.scores = {};
+        return;
+      }
       const subjects = this.isWeekly ? ['语文', '数学', '英语'] : (this.gradeConfig[this.form.grade]?.subjects || []);
       const existing = this.form.scores;
       this.currentSubjects = subjects;
@@ -45,10 +49,11 @@ const app = createApp({
     },
     getGradeName(grade) { return this.gradeConfig[grade]?.name || grade; },
     getExamTypeName(type) { return ({ weekly: '周测', monthly: '月考', midterm: '期中考', final: '期末考', mock: '模拟考' })[type] || type; },
-    async loadExams() {
+    async loadExams(expandLatest = false) {
       const response = await fetch('/api/exams');
       if (!response.ok) throw new Error('无法读取成绩记录');
       this.exams = await response.json();
+      if (expandLatest) this.expandedExamId = this.exams[0]?.id || null;
     },
     async submitExam() {
       if (!this.form.exam_type || !this.form.exam_date || !this.form.exam_name || !this.currentSubjects.length) return alert('请填写考试类型、日期、名称和成绩');
@@ -71,7 +76,7 @@ const app = createApp({
       if (!confirm('确定要删除这条成绩记录吗？')) return;
       const response = await fetch(`/api/exams/${id}`, { method: 'DELETE' });
       if (!response.ok) return alert('❌ 删除失败');
-      await this.loadExams();
+      await this.loadExams(true);
     },
     async updateSubjectChart() {
       if (!this.selectedSubject) return;
@@ -82,17 +87,12 @@ const app = createApp({
       const maxValues = filtered.map((item) => isWeekly ? 100 : item.max_score);
       this.drawChart('subject', 'subjectScoreChart', 'line', filtered.map((item) => item.exam_name), [{ label: `${this.selectedSubject}${isWeekly ? '得分率（%）' : '成绩'}`, data: values, borderColor: '#667eea', backgroundColor: 'rgba(102,126,234,.1)', fill: true }, { label: isWeekly ? '满分得分率（100%）' : '满分', data: maxValues, borderColor: '#ccc', borderDash: [5, 5] }]);
     },
-    async updateRankingChart() {
-      if (!this.selectedExamForRanking) { this.rankingData = { classRankings: [], gradeRankings: [] }; return; }
-      const response = await fetch(`/api/stats/rankings/${this.selectedExamForRanking}`);
-      this.rankingData = response.ok ? await response.json() : { classRankings: [], gradeRankings: [] };
-    },
     getScoreRate(score, maxScore) { return Number(maxScore) > 0 ? Number(((Number(score) || 0) / Number(maxScore) * 100).toFixed(1)) : 0; },
     updateTotalScoreCharts() {
       const orderedExams = [...this.exams].reverse();
-      this.drawTotalChart('standardTotal', 'standardTotalChart', orderedExams.filter((exam) => !['weekly', 'monthly'].includes(exam.type)), '总分');
       this.drawTotalChart('weeklyTotal', 'weeklyTotalChart', orderedExams.filter((exam) => exam.type === 'weekly'), '总分得分率（%）', true);
-      this.drawTotalChart('monthlyTotal', 'monthlyTotalChart', orderedExams.filter((exam) => exam.type === 'monthly'), '总分得分率（%）', true);
+      this.drawTotalChart('monthlyTotal', 'monthlyTotalChart', orderedExams.filter((exam) => exam.type === 'monthly'), '总分');
+      this.drawTotalChart('standardTotal', 'standardTotalChart', orderedExams.filter((exam) => !['weekly', 'monthly'].includes(exam.type)), '总分');
     },
     drawTotalChart(key, id, exams, label, useRate = false) { this.drawChart(key, id, 'line', exams.map((exam) => exam.exam_name), [{ label, data: exams.map((exam) => useRate ? this.getScoreRate(exam.total_score, exam.total_max_score) : exam.total_score), borderColor: '#764ba2', backgroundColor: 'rgba(118,75,162,.1)', fill: true }]); },
     drawChart(key, id, type, labels, datasets) {
@@ -102,7 +102,7 @@ const app = createApp({
     }
   },
   watch: {
-    currentTab(tab) { if (tab === 'view') this.loadExams(); if (tab === 'chart') this.$nextTick(() => this.updateTotalScoreCharts()); },
+    currentTab(tab) { if (tab === 'view') this.loadExams(true); if (tab === 'chart') this.$nextTick(() => this.updateTotalScoreCharts()); },
     'form.grade'() {
       if (this.form.grade !== 'grade9' && this.form.exam_type === 'mock') this.form.exam_type = '';
       if (this.form.exam_type) this.updateSubjects();
