@@ -76,21 +76,30 @@
                             <div v-for="subject in currentSubjects" :key="subject" class="subject-input">
                                 <label>{{ subject }}</label>
                                 <div class="input-wrapper">
-                                    <input 
-                                        v-model.number="form.scores[subject]" 
-                                        type="number" 
-                                        :placeholder="getMaxScore(subject) + '分'"
+                                    <input
+                                        v-model.number="form.scores[subject].score"
+                                        type="number"
+                                        placeholder="得分"
                                         min="0"
-                                        :max="getMaxScore(subject)">
-                                    <span class="max-score">/{{ getMaxScore(subject) }}</span>
+                                        :max="getSubjectMaxScore(subject)">
+                                    <input v-if="isWeekly" v-model.number="form.scores[subject].max_score" class="max-input" type="number" placeholder="满分" min="1">
+                                    <span v-else class="max-score">/{{ getSubjectMaxScore(subject) }}</span>
+                                </div>
+                                <div class="rank-inputs">
+                                    <input v-model.number="form.scores[subject].class_rank" type="number" min="1" placeholder="班级名次">
+                                    <input v-if="!isWeekly" v-model.number="form.scores[subject].grade_rank" type="number" min="1" placeholder="年级名次（可选）">
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="total-score" v-if="getTotalScore() > 0">
+                    <div class="total-score" v-if="currentSubjects.length">
                         <span>📊 总分：</span>
-                        <strong>{{ getTotalScore() }}</strong>
+                        <strong>{{ getTotalScore() }} / {{ getTotalMaxScore() }}</strong>
+                    </div>
+                    <div class="rank-inputs total-ranks" v-if="currentSubjects.length">
+                        <input v-model.number="form.total_class_rank" type="number" min="1" placeholder="总分班级名次">
+                        <input v-if="!isWeekly" v-model.number="form.total_grade_rank" type="number" min="1" placeholder="总分年级名次（可选）">
                     </div>
 
                     <button class="btn btn-primary" @click="submitExam">✅ 保存成绩</button>
@@ -126,6 +135,7 @@
                                 <div class="exam-score">
                                     <span class="total">总分: {{ exam.total_score }}</span>
                                     <button class="btn-small" @click="toggleExamDetails(exam.id)">📂 详情</button>
+                                    <button class="btn-small" @click="editExam(exam)">✏️ 编辑</button>
                                     <button class="btn-small btn-danger" @click="deleteExam(exam.id)">🗑️ 删除</button>
                                 </div>
                             </div>
@@ -134,7 +144,9 @@
                                     <div v-for="score in exam.scores" :key="score.id" class="score-row">
                                         <span class="subject">{{ score.subject }}</span>
                                         <span class="score">{{ score.score }}/{{ score.max_score }}</span>
+                                        <small>班 {{ score.class_rank || '—' }} · 年 {{ score.grade_rank || '—' }}</small>
                                     </div>
+                                    <p class="rank-summary">总分名次：班级 {{ exam.class_rank || '—' }} · 年级 {{ exam.grade_rank || '—' }}</p>
                                 </div>
                             </div>
                         </div>
