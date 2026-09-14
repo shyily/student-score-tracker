@@ -1,31 +1,29 @@
 const express = require('express');
 const cors = require('cors');
-const bodyParser = require('body-parser');
 const db = require('./db');
 const api = require('./api');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// 中间件
 app.use(cors());
-app.use(bodyParser.json());
+app.use(express.json());
 app.use(express.static('public'));
-
-// 初始化数据库
-db.init();
-
-// API 路由
 app.use('/api', api);
+app.get('/', (req, res) => res.sendFile(`${__dirname}/../public/index.html`));
 
-// 首页路由
-app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/../public/index.html');
-});
+async function start() {
+  await db.init();
+  return app.listen(PORT, () => {
+    console.log(`📊 学生成绩管理系统运行在 http://localhost:${PORT}`);
+  });
+}
 
-// 启动服务器
-app.listen(PORT, () => {
-  console.log(`📊 学生成绩管理系统运行在 http://localhost:${PORT}`);
-});
+if (require.main === module) {
+  start().catch((err) => {
+    console.error('数据库初始化失败：', err);
+    process.exit(1);
+  });
+}
 
-module.exports = app;
+module.exports = { app, start };
